@@ -1,0 +1,77 @@
+on:
+  push:
+    branches: [main]
+
+name: Release-plz
+
+permissions: {}
+
+jobs:
+  release-plz-release:
+    name: Release-plz release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Run release-plz release
+        uses: release-plz/action@v0.5
+        with:
+          command: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release-plz-pr:
+    name: Release-plz PR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    concurrency:
+      group: release-plz-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install release-plz
+        uses: taiki-e/install-action@v2
+        with:
+          tool: release-plz
+      # `release-plz update` bumps Cargo.toml/Cargo.lock and CHANGELOG.md
+      # locally, without opening a PR, so meson.build and the AppStream
+      # metainfo can be synced to the same version before we commit.
+      - name: Update Cargo.toml and CHANGELOG.md
+        run: release-plz update
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Sync meson.build and metainfo version
+        run: .github/scripts/sync-version.sh
+      - name: Open release PR
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: release"
+          title: "chore: release"
+          body: >
+            Automated release PR opened by release-plz. Edit CHANGELOG.md
+            in this PR if the generated entries need wording changes, then
+            merge to publish the release.
+          branch: release-plz-release
+          add-paths: |
+            Cargo.toml
+            Cargo.lock
+            CHANGELOG.md
+            meson.build
+            data/com.mateusf.sockety.metainfo.xml.in.in
