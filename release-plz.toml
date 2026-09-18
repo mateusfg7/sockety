@@ -1,0 +1,5 @@
+[workspace]
+# Sockety is a GNOME app, not a library — never publish it to crates.io.
+publish = false
+git_release_enable = true
+git_tag_enable = true
