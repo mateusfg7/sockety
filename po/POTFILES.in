@@ -1,0 +1,5 @@
+data/com.mateusf.sockety.desktop.in.in
+data/com.mateusf.sockety.gschema.xml.in
+data/com.mateusf.sockety.metainfo.xml.in.in
+data/resources/ui/window.ui
+src/application.rs
