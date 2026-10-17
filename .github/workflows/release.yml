@@ -1,0 +1,198 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  changesets:
+    name: Version / tag
+    runs-on: ubuntu-22.04
+    outputs:
+      published: ${{ steps.changesets.outputs.published }}
+      publishedPackages: ${{ steps.changesets.outputs.publishedPackages }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: pnpm install --frozen-lockfile
+
+      # `scripts/sync-version.mjs` (run below via `pnpm run version`) refreshes
+      # Cargo.lock with `cargo update --workspace --offline`. This job never
+      # otherwise builds the Rust crate, so the local registry cache may be
+      # missing newly-added dependencies; fetch them now so that offline
+      # update can resolve.
+      - run: cargo fetch --manifest-path src-tauri/Cargo.toml
+
+      # On every push to main: if there are pending changesets, opens/updates a
+      # "Version Packages" PR. Once that PR is merged (so no changesets remain),
+      # this step instead tags the release and sets `published=true`.
+      #
+      # `publish` runs `scripts/release-tag.mjs` rather than `changeset tag`
+      # directly: changesets/action@v1 only flips `published` to `true` for a
+      # root (non-monorepo) package when the publish script's stdout contains
+      # a `New tag: ...` line - the format `changeset publish` prints for an
+      # npm release. `changeset tag` never prints that, so `published` stayed
+      # `false` and the `bundle` job (gated on it) never ran, silently
+      # skipping GitHub Release creation despite the version/changelog bump
+      # landing. The wrapper script tags as before and then emits that line.
+      - name: Create release pull request or tag
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          version: pnpm run version
+          publish: pnpm run release:tag
+          createGithubReleases: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  bundle:
+    name: Bundle (${{ matrix.settings.name }})
+    needs: changesets
+    if: needs.changesets.outputs.published == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        settings:
+          - name: linux
+            os: ubuntu-22.04
+          - name: windows
+            os: windows-latest
+          - name: macos
+            os: macos-latest
+            args: --target universal-apple-darwin
+    runs-on: ${{ matrix.settings.os }}
+    steps:
+      # The `changesets` job already tagged this exact commit on `main`, so the
+      # default checkout ref is correct.
+      - uses: actions/checkout@v7
+
+      - name: Install Linux dependencies
+        if: matrix.settings.name == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.settings.name == 'macos' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build and attach bundles
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v__VERSION__
+          releaseName: v__VERSION__
+          releaseBody: See CHANGELOG.md for details.
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.settings.args || '' }}
+
+  flatpak-sources:
+    name: Flatpak sources
+    needs: changesets
+    if: needs.changesets.outputs.published == 'true'
+    runs-on: ubuntu-22.04
+    steps:
+      # The `changesets` job already tagged this exact commit on `main`, so
+      # the default checkout ref is correct.
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: pnpm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - run: pnpm install --frozen-lockfile
+      - run: ./scripts/flatpak-sources.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flatpak-generated-sources
+          path: flatpak/generated-sources/
+          retention-days: 1
+
+  flatpak:
+    name: Flatpak bundle
+    needs: [changesets, bundle, flatpak-sources]
+    if: needs.changesets.outputs.published == 'true'
+    runs-on: ubuntu-22.04
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-51
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: flatpak-generated-sources
+          path: flatpak/generated-sources/
+
+      - name: Build Flatpak bundle
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: sockety_${{ fromJSON(needs.changesets.outputs.publishedPackages)[0].version }}_x86_64.flatpak
+          manifest-path: flatpak/com.mateusf.Sockety.yml
+          cache-key: flatpak-builder-${{ github.sha }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flatpak-bundle
+          path: "*.flatpak"
+          retention-days: 1
+
+  flatpak-release:
+    name: Attach Flatpak bundle to release
+    needs: [changesets, flatpak]
+    # No `gh`/privileged container here (the builder image may not ship
+    # `gh`), so this uploads from a plain runner instead.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: flatpak-bundle
+
+      - env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "v${{ fromJSON(needs.changesets.outputs.publishedPackages)[0].version }}" *.flatpak --repo "$GITHUB_REPOSITORY"

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.mateusf.Sockety</id>
+  <name>Sockety</name>
+  <summary>Test and debug Socket.IO servers</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="com.mateusf">
+    <name translate="no">Mateus Felipe Gonçalves</name>
+  </developer>
+  <url type="homepage">https://github.com/mateusfg7/sockety</url>
+  <url type="bugtracker">https://github.com/mateusfg7/sockety/issues</url>
+  <url type="vcs-browser">https://github.com/mateusfg7/sockety</url>
+  <launchable type="desktop-id">com.mateusf.Sockety.desktop</launchable>
+  <description>
+    <p>
+      Sockety is a cross-platform desktop client for testing and debugging Socket.IO servers:
+      connect to a server, emit events and inspect what comes back.
+    </p>
+    <p>
+      Sockety is in early development. This release ships the app shell only — connecting to a
+      server and working with events is coming in a future release.
+    </p>
+  </description>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="0.1.0" date="2026-10-17" />
+  </releases>
+</component>

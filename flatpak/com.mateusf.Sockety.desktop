@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Sockety
+Comment=Connect to and test Socket.IO servers
+Exec=sockety
+Icon=com.mateusf.Sockety
+Terminal=false
+Categories=Network;Development;
+Keywords=socket.io;websocket;realtime;testing;debug;
+StartupWMClass=com.mateusf.Sockety
