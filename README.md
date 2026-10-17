@@ -1,55 +1,50 @@
+<div align="center">
+
+# Sockety
+
+[![CI](https://github.com/mateusfg7/sockety/actions/workflows/ci.yml/badge.svg)](https://github.com/mateusfg7/sockety/actions/workflows/ci.yml)
+[![Release](https://github.com/mateusfg7/sockety/actions/workflows/release.yml/badge.svg)](https://github.com/mateusfg7/sockety/actions/workflows/release.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
+<img src="assets/icons/sockety.svg" width="128" height="128" alt="Sockety icon" />
+
+**A desktop client for testing and debugging Socket.IO servers: connect, emit events and
+inspect what comes back.**
+
+Built with [Tauri 2](https://tauri.app), Rust, React and [Kumo](https://github.com/cloudflare/kumo).
+
 <!-- FIXME Uncomment once published at Flathub -->
-<!-- <a href="https://flathub.org/apps/details/com.mateusf.sockety"> -->
+<!-- <a href="https://flathub.org/apps/details/com.mateusf.Sockety"> -->
 <!-- <img src="https://flathub.org/api/badge?svg&locale=en&light" width="190px" /> -->
 <!-- </a> -->
 
-<div align="center">
-  <img src="data/icons/com.mateusf.sockety.svg" width="128" height="128" alt="Sockety icon" />
-
-  # Sockety
-
-  A native GNOME client for testing Socket.IO servers: connect, emit events
-  and inspect what comes back, without a browser-based tool.
 </div>
 
-> **Status:** Sockety is in early development. The app currently scaffolds a
-> GNOME/GTK4 window; Socket.IO connection and event features are not
-> implemented yet.
+> [!NOTE]
+> Sockety is in early development. This release ships the app shell only (title bar, theming,
+> language switching) — connecting to a server and working with Socket.IO events is coming in a
+> future release.
 
 ## Building from source
 
-Sockety is a GTK4/libadwaita app written in Rust, built with Meson. The
-easiest way to build and run it is with [GNOME Builder](https://apps.gnome.org/Builder/):
-
-1. Open GNOME Builder.
-2. Select **Clone Repository** and use `https://github.com/mateusfg7/sockety.git`.
-3. Click **Run** (▶) to build and launch the Flatpak-sandboxed development build.
-
-You can also build manually with Meson if you have the required dependencies
-installed (`glib-2.0 >= 2.66`, `gio-2.0 >= 2.66`, `gtk4 >= 4.20`,
-`libadwaita-1 >= 1.8`, and a Rust toolchain via `cargo`):
-
-```sh
-meson setup builddir
-meson compile -C builddir
-meson install -C builddir
+```bash
+git clone https://github.com/mateusfg7/sockety.git
+cd sockety
+pnpm install
+pnpm tauri dev      # launches the desktop app with hot reload
 ```
 
-For general background on building GNOME apps with Flatpak and GNOME
-Builder, see the [GNOME getting started guide](https://developer.gnome.org/documentation/tutorials/beginners/getting_started.html).
+See [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md) for build requirements (Node, Rust, platform
+packages), the full development command reference and the project layout.
 
 ## Contributing
 
-Issues and pull requests are welcome at
-[github.com/mateusfg7/sockety](https://github.com/mateusfg7/sockety).
+Contributions are welcome! See [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md) to get set up,
+and [docs/RELEASING.md](./docs/RELEASING.md) for how versioning, releases and the Flatpak build
+work.
 
-<!-- FIXME Uncomment once available at Damned Lies -->
-<!-- ## Translations -->
+## License
 
-<!-- Helping to translate Sockety or add support to a new language is very -->
-<!-- welcome. You can find everything you need at: -->
-<!-- [l10n.gnome.org/module/sockety/](https://l10n.gnome.org/module/sockety/) -->
+[MIT](./LICENSE) © Mateus Felipe Gonçalves
 
-## Code of Conduct
-
-This project follows the [GNOME Code of Conduct](https://conduct.gnome.org/).
+Made by [Mateus Felipe Gonçalves](https://mateusf.com)
