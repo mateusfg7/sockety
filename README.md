@@ -6,7 +6,7 @@
 [![Release](https://github.com/mateusfg7/sockety/actions/workflows/release.yml/badge.svg)](https://github.com/mateusfg7/sockety/actions/workflows/release.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
-<img src="assets/icons/sockety.svg" width="128" height="128" alt="Sockety icon" />
+<img src="src-tauri/app-icon.svg" width="128" height="128" alt="Sockety icon" />
 
 **A desktop client for testing and debugging Socket.IO servers: connect, emit events and
 inspect what comes back.**
